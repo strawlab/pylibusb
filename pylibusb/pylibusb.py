@@ -18,11 +18,16 @@ class USBNoDataAvailableError(USBError):
 if sys.platform.startswith('linux'):
     c_libusb_shared_library = '/usr/lib/libusb.so'
     c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
+elif sys.platform.startswith('win'):
+    c_libusb = ctypes.CDLL(r'C:\WINDOWS\system32\libusb0.dll')
 
 #####################################
 # typedefs and defines
 if sys.platform.startswith('linux'):
     PATH_MAX = 4096 # HACK! should get from header file...
+    LIBUSB_PATH_MAX = PATH_MAX+1
+elif sys.platform.startswith('win'):
+    LIBUSB_PATH_MAX = 512 # From usb.h of win32 libusb source
 
 if hasattr(ctypes,'c_uint8'):
     uint8 = ctypes.c_uint8
@@ -37,6 +42,7 @@ usb_device_p = ctypes.POINTER('usb_device')
 usb_bus_p = ctypes.POINTER('usb_bus')
 usb_dev_handle_p = ctypes.POINTER('usb_dev_handle')
 usb_config_descriptor_p = ctypes.POINTER('usb_config_descriptor')
+usb_interface_p = ctypes.c_void_p # XXX define...
 
 # structures
 class usb_device_descriptor(ctypes.Structure):
@@ -58,19 +64,23 @@ class usb_device_descriptor(ctypes.Structure):
 class usb_device(ctypes.Structure):
     _fields_ = [('next',usb_device_p),
                 ('prev',usb_device_p),
-                ('filename',ctypes.c_char*(PATH_MAX+1)),
+                ('filename',ctypes.c_char*(LIBUSB_PATH_MAX)),
                 ('bus',usb_bus_p),
                 ('descriptor',usb_device_descriptor),
                 ('config',usb_config_descriptor_p),
-                # ...
+                ('dev',ctypes.c_void_p),
+                ('devnum',uint8),
+                ('num_children',uint8),
+                ('children',ctypes.POINTER(usb_device_p))
                 ]
     
 class usb_bus(ctypes.Structure):
     _fields_ = [('next',usb_bus_p),
                 ('prev',usb_bus_p),
-                ('dirname',ctypes.c_char*(PATH_MAX+1)),
+                ('dirname',ctypes.c_char*(LIBUSB_PATH_MAX)),
                 ('devices',usb_device_p),
-                # ...
+                ('location',ctypes.c_ulong),
+                ('root_dev',usb_device_p),
                 ]
 
 class usb_config_descriptor(ctypes.Structure):
@@ -83,6 +93,9 @@ class usb_config_descriptor(ctypes.Structure):
                 ('iConfiguration',uint8),
                 ('bmAttributes',uint8),
                 ('MaxPower',uint8),
+                ('interface',usb_interface_p),
+                ('extra',ctypes.POINTER(uint8)),
+                ('extralen',ctypes.c_int)
                 ]
 
 class usb_dev_handle(ctypes.Structure):
@@ -97,6 +110,7 @@ ctypes.SetPointerType(usb_config_descriptor_p, usb_config_descriptor)
 
 # structure wrappers
 class config_descriptor(object):
+    """wraps usb_config_descriptor structure"""
     def __init__(self,cval):
         if type(cval) != usb_config_descriptor:
             raise TypeError('need struct usb_config_descriptor')
@@ -104,8 +118,9 @@ class config_descriptor(object):
     def get_bConfigurationValue(self):
         return self.cval.bConfigurationValue
     bConfigurationValue = property(get_bConfigurationValue)
-        
+
 class device_descriptor(object):
+    """wraps usb_device_descriptor structure"""
     def __init__(self,cval):
         if type(cval) != usb_device_descriptor:
             raise TypeError('need struct usb_device_descriptor')
@@ -124,6 +139,7 @@ class device_descriptor(object):
     bNumConfigurations = property(get_bNumConfigurations)
     
 class device(object):
+    """wraps pointer to usb_device structure"""
     def __init__(self,cval):
         if type(cval) != usb_device_p:
             raise TypeError('need pointer to struct usb_device')
@@ -150,6 +166,7 @@ class device(object):
     config = property(get_config)
 
 class bus(object):
+    """wraps pointer to usb_bus structure"""
     def __init__(self,cval):
         if type(cval) != usb_bus_p:
             raise TypeError('need pointer to struct usb_bus')
