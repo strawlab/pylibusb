@@ -73,8 +73,9 @@ def print_config(cfg):
     printf("  bmAttributes",cfg.bmAttributes)
     printf("  MaxPower",cfg.MaxPower)
 
+    interfaces = cfg.interface
     for i in range(cfg.bNumInterfaces):
-        print_interface(cfg.interface[i])
+        print_interface(interfaces[i])
     
 def print_device(dev):
     printf("device",dev)
@@ -108,9 +109,6 @@ if 1:
 
         libusb_handle = usb.open(dev)
 
-        #c_test.print_device( dev.cval )
-        #print_device( dev )
-        
         interface_nr = 0
         if hasattr(usb,'get_driver_np'):
             # non-portable libusb extension
@@ -130,4 +128,11 @@ if 1:
         debug('config.bConfigurationValue',config.bConfigurationValue)
         usb.set_configuration(libusb_handle, config.bConfigurationValue)
 
-        #c_test.print_config( config.cval )
+
+        print '## in C: ################################'
+        c_test.print_device( dev.cval )
+        print
+        print '## in Python: ################################'
+        print_device( dev )
+        print
+        

@@ -51,9 +51,9 @@ class usb_device(ctypes.Structure):
 class usb_bus(ctypes.Structure):
     _pack_ = packed_on_windows_only
 class usb_config_descriptor(ctypes.Structure):
-    _pack_ = packed_on_all # packed structure (hmm, in usb.h, only some fields packed)
+    _pack_ = packed_on_windows_only
 class usb_interface_descriptor(ctypes.Structure):
-    _pack_ = packed_on_all # packed structure
+    _pack_ = packed_on_windows_only
 class usb_interface(ctypes.Structure):
     _pack_ = packed_on_windows_only
 class usb_dev_handle(ctypes.Structure):

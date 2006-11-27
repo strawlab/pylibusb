@@ -43,7 +43,7 @@ TEST_PYLIBUSB_API print_interface( struct usb_interface* iface) {
 
 TEST_PYLIBUSB_API print_config( struct usb_config_descriptor* cfg ) {
   int i;
-  printf("C: usb_config_descriptor at %p\n",cfg);
+  printf("usb_config_descriptor at %p\n",cfg);
   printf("  bLength: %d\n",cfg->bLength);
   printf("  bDescriptorType: %d\n",cfg->bDescriptorType);
   printf("  wTotalLength: %d\n",cfg->wTotalLength);
