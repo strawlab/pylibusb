@@ -8,7 +8,14 @@ __all__ = ['USBError','USBNoDataAvailableError','bulk_read','bulk_write',
            
 if sys.platform.startswith('linux'):
     __all__.extend(['get_driver_np','detach_kernel_driver_np'])
-
+    
+packed_on_all = True
+    
+if sys.platform.startswith('win'):
+    packed_on_windows_only = True
+else:
+    packed_on_windows_only = False
+    
 class USBError(RuntimeError):
     pass
 
@@ -37,87 +44,270 @@ else:
     uint16 = ctypes.c_ushort
 
 # datatypes
-# Forward Declarations
-usb_device_p = ctypes.POINTER('usb_device')
-usb_bus_p = ctypes.POINTER('usb_bus')
-usb_dev_handle_p = ctypes.POINTER('usb_dev_handle')
-usb_config_descriptor_p = ctypes.POINTER('usb_config_descriptor')
-usb_interface_p = ctypes.c_void_p # XXX define...
+class usb_device_descriptor(ctypes.Structure):
+    _pack_ = packed_on_all
+class usb_device(ctypes.Structure):
+    _pack_ = packed_on_windows_only
+class usb_bus(ctypes.Structure):
+    _pack_ = packed_on_windows_only
+class usb_config_descriptor(ctypes.Structure):
+    _pack_ = packed_on_all # packed structure (hmm, in usb.h, only some fields packed)
+class usb_interface_descriptor(ctypes.Structure):
+    _pack_ = packed_on_all # packed structure
+class usb_interface(ctypes.Structure):
+    _pack_ = packed_on_windows_only
+class usb_dev_handle(ctypes.Structure):
+    _pack_ = packed_on_windows_only
+class usb_endpoint_descriptor(ctypes.Structure):
+    _pack_ = packed_on_windows_only
+
+# Pointer types
+usb_device_p = ctypes.POINTER(usb_device)
+usb_bus_p = ctypes.POINTER(usb_bus)
+usb_dev_handle_p = ctypes.POINTER(usb_dev_handle)
+usb_config_descriptor_p = ctypes.POINTER(usb_config_descriptor)
+usb_interface_p = ctypes.POINTER(usb_interface)
+usb_interface_descriptor_p = ctypes.POINTER(usb_interface_descriptor)
+usb_endpoint_descriptor_p = ctypes.POINTER(usb_endpoint_descriptor)
 
 # structures
-class usb_device_descriptor(ctypes.Structure):
-    _fields_ = [('bLength',uint8),
-                ('bDescriptorType',uint8),
-                ('bcdUSB',uint16),
-                ('bDeviceClass',uint8),
-                ('bDeviceSubClass',uint8),
-                ('bDeviceProtocol',uint8),
-                ('bMaxPacketSize0',uint8),
-                ('idVendor',uint16),
-                ('idProduct',uint16),
-                ('bcdDevice',uint16),
-                ('iManufacturer',uint8),
-                ('iProduct',uint8),
-                ('iSerialNumber',uint8),
-                ('bNumConfigurations',uint8)]
+usb_device_descriptor._fields_ = [
+    ('bLength',uint8),
+    ('bDescriptorType',uint8),
+    ('bcdUSB',uint16),
+    ('bDeviceClass',uint8),
+    ('bDeviceSubClass',uint8),
+    ('bDeviceProtocol',uint8),
+    ('bMaxPacketSize0',uint8),
+    ('idVendor',uint16),
+    ('idProduct',uint16),
+    ('bcdDevice',uint16),
+    ('iManufacturer',uint8),
+    ('iProduct',uint8),
+    ('iSerialNumber',uint8),
+    ('bNumConfigurations',uint8)]
 
-class usb_device(ctypes.Structure):
-    _fields_ = [('next',usb_device_p),
-                ('prev',usb_device_p),
-                ('filename',ctypes.c_char*(LIBUSB_PATH_MAX)),
-                ('bus',usb_bus_p),
-                ('descriptor',usb_device_descriptor),
-                ('config',usb_config_descriptor_p),
-                ('dev',ctypes.c_void_p),
-                ('devnum',uint8),
-                ('num_children',uint8),
-                ('children',ctypes.POINTER(usb_device_p))
-                ]
+usb_device._fields_ = [
+    ('next',usb_device_p),
+    ('prev',usb_device_p),
+    ('filename',ctypes.c_char*(LIBUSB_PATH_MAX)),
+    ('bus',usb_bus_p),
+    ('descriptor',usb_device_descriptor),
+    ('config',usb_config_descriptor_p),
+    ('dev',ctypes.c_void_p),
+    ('devnum',uint8),
+    ('num_children',uint8),
+    ('children',ctypes.POINTER(usb_device_p))
+    ]
     
-class usb_bus(ctypes.Structure):
-    _fields_ = [('next',usb_bus_p),
-                ('prev',usb_bus_p),
-                ('dirname',ctypes.c_char*(LIBUSB_PATH_MAX)),
-                ('devices',usb_device_p),
-                ('location',ctypes.c_ulong),
-                ('root_dev',usb_device_p),
-                ]
+usb_bus._fields_ = [
+    ('next',usb_bus_p),
+    ('prev',usb_bus_p),
+    ('dirname',ctypes.c_char*(LIBUSB_PATH_MAX)),
+    ('devices',usb_device_p),
+    ('location',ctypes.c_ulong),
+    ('root_dev',usb_device_p),
+    ]
 
-class usb_config_descriptor(ctypes.Structure):
-    _pack_ = 1 # packed structure
-    _fields_ = [('bLength',uint8),
-                ('bDescriptorType',uint8),
-                ('wTotalLength',uint16),
-                ('bNumInterfaces',uint8),
-                ('bConfigurationValue',uint8),
-                ('iConfiguration',uint8),
-                ('bmAttributes',uint8),
-                ('MaxPower',uint8),
-                ('interface',usb_interface_p),
-                ('extra',ctypes.POINTER(uint8)),
-                ('extralen',ctypes.c_int)
-                ]
+usb_config_descriptor._fields_ = [
+    ('bLength',uint8),
+    ('bDescriptorType',uint8),
+    ('wTotalLength',uint16),
+    ('bNumInterfaces',uint8),
+    ('bConfigurationValue',uint8),
+    ('iConfiguration',uint8),
+    ('bmAttributes',uint8),
+    ('MaxPower',uint8),
+    ('interface',usb_interface_p),
+    ('extra',ctypes.POINTER(uint8)),
+    ('extralen',ctypes.c_int)
+    ]
 
-class usb_dev_handle(ctypes.Structure):
-    # opaque struct
-    pass
+usb_interface_descriptor._fields_ = [
+    ('bLength',uint8),
+    ('bDescriptorType',uint8),
+    ('bInterfaceNumber',uint8),
+    ('bAlternateSetting',uint8),
+    ('bNumEndpoints',uint8),
+    ('bInterfaceClass',uint8),
+    ('bInterfaceSubClass',uint8),
+    ('bInterfaceProtocol',uint8),
+    ('iInterface',uint8),
+    ('endpoint',usb_endpoint_descriptor_p),
+    ('extra',ctypes.POINTER(uint8)),
+    ('extralen',ctypes.c_int),
+    ]
 
-# Set the pointer to the structure
-ctypes.SetPointerType(usb_device_p, usb_device)
-ctypes.SetPointerType(usb_bus_p, usb_bus)
-ctypes.SetPointerType(usb_dev_handle_p, usb_dev_handle)
-ctypes.SetPointerType(usb_config_descriptor_p, usb_config_descriptor)
+usb_interface._fields_ = [
+    ('altsetting',usb_interface_descriptor_p),
+    ('num_altsetting',ctypes.c_int),
+    ]
+
+usb_endpoint_descriptor._fields_ = [
+    ('bLength',uint8),
+    ('bDescriptorType',uint8),
+    ('bEndpointAddress',uint8),
+    ('bmAttributes',uint8),
+    ('wMaxPacketSize',uint16),
+    ('bInterval',uint8),
+    ('bRefresh',uint8),
+    ('bSynchAddress',uint8),
+    ('extra',ctypes.c_char_p),
+    ('extralen',ctypes.c_int),
+    ]
 
 # structure wrappers
+class _interface(object):
+    """wraps struct usb_interface*"""
+    def __init__(self,cval):
+        if type(cval) != usb_interface_p:
+            raise TypeError('need struct usb_interface*')
+        self.cval = cval
+    def get_num_altsetting(self):
+        return self.cval.contents.num_altsetting
+    num_altsetting = property(get_num_altsetting)
+    def get_altsetting(self):
+        result = []
+        for i in range(self.num_altsetting):
+            result.append( interface_descriptor( ctypes.pointer(self.cval.contents.altsetting[i]) ))
+        return result
+    altsetting = property(get_altsetting)
+    
+class _endpoint(object):
+    """wraps struct usb_endpoint_descriptor*"""
+    def __init__(self,cval):
+        if type(cval) != usb_endpoint_descriptor_p:
+            raise TypeError('need struct usb_endpoint_descriptor*')
+        self.cval = cval
+        
+    def get_bLength(self):
+        return self.cval.contents.bLength
+    bLength = property(get_bLength)
+
+    def get_bDescriptorType(self):
+        return self.cval.contents.bDescriptorType
+    bDescriptorType = property(get_bDescriptorType)
+
+    def get_bEndpointAddress(self):
+        return self.cval.contents.bEndpointAddress
+    bEndpointAddress = property(get_bEndpointAddress)
+
+    def get_bmAttributes(self):
+        return self.cval.contents.bmAttributes
+    bmAttributes = property(get_bmAttributes)
+
+    def get_wMaxPacketSize(self):
+        return self.cval.contents.wMaxPacketSize
+    wMaxPacketSize = property(get_wMaxPacketSize)
+
+    def get_bInterval(self):
+        return self.cval.contents.bInterval
+    bInterval = property(get_bInterval)
+
+    def get_bRefresh(self):
+        return self.cval.contents.bRefresh
+    bRefresh = property(get_bRefresh)
+
+    def get_bSynchAddress(self):
+        return self.cval.contents.bSynchAddress
+    bSynchAddress = property(get_bSynchAddress)
+    
+class interface_descriptor(object):
+    """wraps struct usb_interface_descriptor*"""
+    def __init__(self,cval):
+        if type(cval) != usb_interface_descriptor_p:
+            raise TypeError('need struct usb_interface_descriptor*')
+        self.cval = cval
+        
+    def get_bLength(self):
+        return self.cval.contents.bLength
+    bLength = property(get_bLength)
+
+    def get_bDescriptorType(self):
+        return self.cval.contents.bDescriptorType
+    bDescriptorType = property(get_bDescriptorType)
+    
+    def get_bInterfaceNumber(self):
+        return self.cval.contents.bInterfaceNumber
+    bInterfaceNumber = property(get_bInterfaceNumber)
+
+    def get_bAlternateSetting(self):
+        return self.cval.contents.bAlternateSetting
+    bAlternateSetting = property(get_bAlternateSetting)
+
+    def get_bNumEndpoints(self):
+        return self.cval.contents.bNumEndpoints
+    bNumEndpoints = property(get_bNumEndpoints)
+
+    def get_bInterfaceClass(self):
+        return self.cval.contents.bInterfaceClass
+    bInterfaceClass = property(get_bInterfaceClass)
+
+    def get_bInterfaceSubClass(self):
+        return self.cval.contents.bInterfaceSubClass
+    bInterfaceSubClass = property(get_bInterfaceSubClass)
+
+    def get_bInterfaceProtocol(self):
+        return self.cval.contents.bInterfaceProtocol
+    bInterfaceProtocol = property(get_bInterfaceProtocol)
+
+    def get_iInterface(self):
+        return self.cval.contents.iInterface
+    iInterface = property(get_iInterface)
+
+    def get_endpoint(self):
+        result = []
+        for i in range(self.bNumEndpoints):
+            result.append( _endpoint( ctypes.pointer(self.cval.contents.endpoint[i])) )
+        return result
+    endpoint = property(get_endpoint)
+
 class config_descriptor(object):
-    """wraps usb_config_descriptor structure"""
+    """wraps struct usb_config_descriptor"""
     def __init__(self,cval):
         if type(cval) != usb_config_descriptor:
             raise TypeError('need struct usb_config_descriptor')
         self.cval = cval
+        
+    def get_bLength(self):
+        return self.cval.bLength
+    bLength = property(get_bLength)
+
+    def get_bDescriptorType(self):
+        return self.cval.bDescriptorType
+    bDescriptorType = property(get_bDescriptorType)
+
+    def get_wTotalLength(self):
+        return self.cval.wTotalLength
+    wTotalLength = property(get_wTotalLength)
+    
+    def get_bNumInterfaces(self):
+        return self.cval.bNumInterfaces
+    bNumInterfaces = property(get_bNumInterfaces)
+
     def get_bConfigurationValue(self):
         return self.cval.bConfigurationValue
     bConfigurationValue = property(get_bConfigurationValue)
+    
+    def get_iConfiguration(self):
+        return self.cval.iConfiguration
+    iConfiguration = property(get_iConfiguration)
+
+    def get_bmAttributes(self):
+        return self.cval.bmAttributes
+    bmAttributes = property(get_bmAttributes)
+
+    def get_MaxPower(self):
+        return self.cval.MaxPower
+    MaxPower = property(get_MaxPower)
+
+    def get_interface(self):
+        result = []
+        n_interfaces = self.bNumInterfaces
+        for i in range(n_interfaces):
+            result.append(_interface( ctypes.pointer(self.cval.interface[i])) )
+        return result
+    interface = property(get_interface)
 
 class device_descriptor(object):
     """wraps usb_device_descriptor structure"""
@@ -138,13 +328,16 @@ class device_descriptor(object):
         return self.cval.bNumConfigurations
     bNumConfigurations = property(get_bNumConfigurations)
     
-class device(object):
+class _device(object):
     """wraps pointer to usb_device structure"""
     def __init__(self,cval):
         if type(cval) != usb_device_p:
             raise TypeError('need pointer to struct usb_device')
         self.cval = cval
         self.next = self # prepare for iterating
+        if not bool(cval):
+            cval = None
+            self.next = None
     def __iter__(self):
         return self
     def next(self):
@@ -183,7 +376,7 @@ class bus(object):
         return result
     def get_devices(self):
         devices = self.cval.contents.devices
-        result = device(devices)
+        result = _device(devices)
         return result
     devices = property(get_devices)
 
@@ -195,7 +388,7 @@ def _CheckBus(b):
 
 def _CheckDevice(b):
     if bool(b):
-        return device(b)
+        return _device(b)
     else:
         return None 
     
@@ -271,8 +464,8 @@ def interrupt_write(libusb_handle,endpoint,buf,timeout):
                                             buf, len(buf), timeout))
 
 def open(dev):
-    if not isinstance(dev,device):
-        raise ValueError('open() must be called with pylibusb.device instance')
+    if not isinstance(dev,_device):
+        raise ValueError('open() must be called with pylibusb._device instance')
     libusb_handle = c_libusb.usb_open(dev.cval)
     if not bool(libusb_handle):
         raise USBError("could not open device '%s'"%str(dev))

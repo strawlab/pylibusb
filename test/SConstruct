@@ -1,0 +1,7 @@
+import os
+
+env = Environment(ENV = os.environ)
+
+env.SharedLibrary(target='test_pylibusb',
+                  source=['test_pylibusb.c'],
+                  )
