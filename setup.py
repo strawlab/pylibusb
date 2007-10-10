@@ -6,6 +6,7 @@ setup(name='pylibusb',
       version='0.1',
       author='Andrew Straw',
       author_email='strawman@astraw.com',
+      license='BSD',
       packages = ['pylibusb'],
       install_requires = ['ctypes'],
       zip_safe=True)
