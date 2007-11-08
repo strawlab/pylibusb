@@ -2,8 +2,8 @@ import sys
 import ctypes
 
 __all__ = ['USBError','USBNoDataAvailableError','bulk_read','bulk_write',
-           'claim_interface', 'find_busses','find_devices','get_busses',
-           'init','interrupt_read','interrupt_write','open',
+           'claim_interface', 'close', 'find_busses','find_devices','get_busses',
+           'get_string_simple', 'init','interrupt_read','interrupt_write','open',
            'set_configuration','set_debug']
            
 if sys.platform.startswith('linux'):
@@ -119,7 +119,7 @@ usb_config_descriptor._fields_ = [
     ('bmAttributes',uint8),
     ('MaxPower',uint8),
     ('interface',usb_interface_p),
-    ('extra',ctypes.POINTER(uint8)),
+    ('extra',ctypes.c_char_p),
     ('extralen',ctypes.c_int)
     ]
 
@@ -134,7 +134,7 @@ usb_interface_descriptor._fields_ = [
     ('bInterfaceProtocol',uint8),
     ('iInterface',uint8),
     ('endpoint',usb_endpoint_descriptor_p),
-    ('extra',ctypes.POINTER(uint8)),
+    ('extra',ctypes.c_char_p),
     ('extralen',ctypes.c_int),
     ]
 
@@ -316,18 +316,34 @@ class device_descriptor(object):
             raise TypeError('need struct usb_device_descriptor')
         self.cval = cval
         
-    def get_idProduct(self):
-        return self.cval.idProduct
-    idProduct = property(get_idProduct)
-    
     def get_idVendor(self):
         return self.cval.idVendor
     idVendor = property(get_idVendor)
 
+    def get_idProduct(self):
+        return self.cval.idProduct
+    idProduct = property(get_idProduct)
+
+    def get_bcdDevice(self):
+        return self.cval.bcdDevice
+    bcdDevice = property(get_bcdDevice)
+
+    def get_iManufacturer(self):
+        return self.cval.iManufacturer
+    iManufacturer = property(get_iManufacturer)
+    
+    def get_iProduct(self):
+        return self.cval.iProduct
+    iProduct = property(get_iProduct)
+    
+    def get_iSerialNumber(self):
+        return self.cval.iSerialNumber
+    iSerialNumber = property(get_iSerialNumber)
+    
     def get_bNumConfigurations(self):
         return self.cval.bNumConfigurations
     bNumConfigurations = property(get_bNumConfigurations)
-    
+
 class _device(object):
     """wraps pointer to usb_device structure"""
     def __init__(self,cval):
@@ -397,6 +413,15 @@ def _CheckDevice(b):
 c_libusb.usb_get_busses.restype = usb_bus_p
 c_libusb.usb_open.restype = usb_dev_handle_p
 c_libusb.usb_strerror.restype = ctypes.c_char_p
+
+c_libusb.usb_close.restype = ctypes.c_int
+c_libusb.usb_close.argtypes = [usb_dev_handle_p]
+
+c_libusb.usb_get_string_simple.restype = ctypes.c_int
+c_libusb.usb_get_string_simple.argtypes = [usb_dev_handle_p,
+                                           ctypes.c_int,
+                                           ctypes.c_char_p,
+                                           ctypes.c_int]
 
 c_libusb.usb_bulk_read.argtypes = [usb_dev_handle_p, ctypes.c_int,
                                         ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
@@ -470,6 +495,20 @@ def open(dev):
     if not bool(libusb_handle):
         raise USBError("could not open device '%s'"%str(dev))
     return libusb_handle
+
+def close(libusb_handle):
+    if not isinstance(libusb_handle,usb_dev_handle_p):
+        raise ValueError("expected instance of usb_dev_handle_p")
+    return CHK(c_libusb.usb_close(libusb_handle))
+
+def get_string_simple(libusb_handle,index):
+    if not isinstance(libusb_handle,usb_dev_handle_p):
+        raise ValueError("expected instance of usb_dev_handle_p")
+    buflen = 256
+    buf = ctypes.create_string_buffer(buflen)
+    CHK(c_libusb.usb_get_string_simple(libusb_handle,
+                                       index,buf,buflen))
+    return buf.value
 
 def set_configuration(libusb_handle,value):
     if not isinstance(libusb_handle,usb_dev_handle_p):

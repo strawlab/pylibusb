@@ -8,5 +8,4 @@ setup(name='pylibusb',
       author_email='strawman@astraw.com',
       license='BSD',
       packages = ['pylibusb'],
-      install_requires = ['ctypes'],
       zip_safe=True)
