@@ -27,10 +27,13 @@ if sys.platform.startswith('linux'):
     c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
 elif sys.platform.startswith('win'):
     c_libusb = ctypes.CDLL(r'C:\WINDOWS\system32\libusb0.dll')
+elif sys.platform.startswith('darwin'):
+    c_libusb_shared_library = '/Library/Frameworks/libusb.framework/Versions/Current/libusb'
+    c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
 
 #####################################
 # typedefs and defines
-if sys.platform.startswith('linux'):
+if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     PATH_MAX = 4096 # HACK! should get from header file...
     LIBUSB_PATH_MAX = PATH_MAX+1
 elif sys.platform.startswith('win'):
