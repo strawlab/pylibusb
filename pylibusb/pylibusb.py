@@ -23,7 +23,7 @@ class USBNoDataAvailableError(USBError):
     pass
 
 if sys.platform.startswith('linux'):
-    c_libusb_shared_library = '/usr/lib/libusb.so'
+    c_libusb_shared_library = 'libusb.so'
     c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
 elif sys.platform.startswith('win'):
     c_libusb = ctypes.CDLL(r'C:\WINDOWS\system32\libusb0.dll')
