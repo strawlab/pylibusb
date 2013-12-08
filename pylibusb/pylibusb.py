@@ -30,6 +30,11 @@ elif sys.platform.startswith('win'):
 elif sys.platform.startswith('darwin'):
     c_libusb_shared_library = '/Library/Frameworks/libusb.framework/Versions/Current/libusb'
     c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
+elif sys.platform.startswith('freebsd'):
+    c_libusb_shared_library = 'libusb.so'
+    c_libusb = ctypes.cdll.LoadLibrary(c_libusb_shared_library)
+else:
+    raise Exception('Platform ' + sys.platform + ' not supported')
 
 #####################################
 # typedefs and defines
@@ -38,6 +43,9 @@ if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     LIBUSB_PATH_MAX = PATH_MAX+1
 elif sys.platform.startswith('win'):
     LIBUSB_PATH_MAX = 512 # From usb.h of win32 libusb source
+elif sys.platform.startswith('freebsd'):
+    PATH_MAX = 1024 # HACK! should get from header file...
+    LIBUSB_PATH_MAX = PATH_MAX+1
 
 if hasattr(ctypes,'c_uint8'):
     uint8 = ctypes.c_uint8
